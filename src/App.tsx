@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
+import AdminUsers from "@/pages/AdminUsers"; // ✅ move this up here
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/admin-users" element={<AdminUsers />} /> {/* ✅ this goes here */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
@@ -27,6 +29,3 @@ const App = () => (
 );
 
 export default App;
-import AdminUsers from "@/pages/AdminUsers";
-
-<Route path="/admin-users" element={<AdminUsers />} />
