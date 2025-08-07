@@ -27,3 +27,6 @@ const App = () => (
 );
 
 export default App;
+import AdminUsers from "@/pages/AdminUsers";
+
+<Route path="/admin-users" element={<AdminUsers />} />
