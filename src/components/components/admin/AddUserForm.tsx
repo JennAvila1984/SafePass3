@@ -1,91 +1,96 @@
-import { useState } from "react";
-import { supabase } from "@/lib/supabase"; // adjust the path if needed
+// src/components/admin/AddUserForm.tsx
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createClient } from "@supabase/supabase-js";
+import { Input } from "@/components/ui/input";      // shadcn/ui
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
-const AddUserForm = ({ onUserAdded }: { onUserAdded: () => void }) => {
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    role: "",
-    phone: "",
-  });
+const schema = z.object({
+  full_name: z.string().min(2, "Name is required"),
+  email: z.string().email("Valid email required"),
+  phone: z.string().optional(),
+  role: z.string().min(2, "Role is required"),
+});
 
-  const [loading, setLoading] = useState(false);
+export type AddUserFormValues = z.infer<typeof schema>;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+type Props = {
+  onSuccess?: () => void;
+  defaultValues?: Partial<AddUserFormValues>; // use for edit
+  userId?: string; // if passed, we will update instead of insert
+};
 
-  const handleAddUser = async () => {
-    if (!formData.full_name || !formData.email || !formData.role) {
-      alert("Please fill in all required fields.");
-      return;
-    }
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
 
-    setLoading(true);
+export default function AddUserForm({ onSuccess, defaultValues, userId }: Props) {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } =
+    useForm<AddUserFormValues>({
+      resolver: zodResolver(schema),
+      defaultValues: {
+        full_name: "",
+        email: "",
+        phone: "",
+        role: "staff",
+        ...defaultValues,
+      },
+    });
 
-    const { error } = await supabase.from("users").insert([formData]);
-
-    setLoading(false);
-
-    if (error) {
-      alert("Error adding user: " + error.message);
+  const onSubmit = async (values: AddUserFormValues) => {
+    if (userId) {
+      const { error } = await supabase
+        .from("users")
+        .update({
+          full_name: values.full_name,
+          email: values.email,
+          phone: values.phone ?? null,
+          role: values.role,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) { alert(error.message); return; }
     } else {
-      alert("User added!");
-      setFormData({ full_name: "", email: "", role: "", phone: "" });
-      onUserAdded(); // Refresh user list
+      const { error } = await supabase.from("users").insert({
+        full_name: values.full_name,
+        email: values.email,
+        phone: values.phone ?? null,
+        role: values.role,
+      });
+      if (error) { alert(error.message); return; }
     }
+    onSuccess?.();
   };
 
   return (
-    <div className="p-4 border rounded shadow max-w-md mb-6">
-      <h2 className="text-lg font-semibold mb-2">Add New User</h2>
-      <div className="flex flex-col gap-2">
-        <input
-          type="text"
-          name="full_name"
-          placeholder="Full Name"
-          value={formData.full_name}
-          onChange={handleChange}
-          className="border rounded px-3 py-2"
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="border rounded px-3 py-2"
-          required
-        />
-        <input
-          type="text"
-          name="role"
-          placeholder="Role (e.g., ADMIN)"
-          value={formData.role}
-          onChange={handleChange}
-          className="border rounded px-3 py-2"
-          required
-        />
-        <input
-          type="text"
-          name="phone"
-          placeholder="Phone"
-          value={formData.phone}
-          onChange={handleChange}
-          className="border rounded px-3 py-2"
-        />
-        <button
-          onClick={handleAddUser}
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Adding..." : "Add User"}
-        </button>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <Label htmlFor="full_name">Full name</Label>
+        <Input id="full_name" {...register("full_name")} />
+        {errors.full_name && <p className="text-red-500 text-sm">{errors.full_name.message}</p>}
       </div>
-    </div>
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" type="email" {...register("email")} />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+      </div>
+      <div>
+        <Label htmlFor="phone">Phone</Label>
+        <Input id="phone" {...register("phone")} />
+      </div>
+      <div>
+        <Label htmlFor="role">Role</Label>
+        <Input id="role" placeholder="admin | staff | monitor" {...register("role")} />
+        {errors.role && <p className="text-red-500 text-sm">{errors.role.message}</p>}
+      </div>
+
+      <Button type="submit" disabled={isSubmitting}>
+        {userId ? "Update User" : "Add User"}
+      </Button>
+    </form>
   );
-};
-
-export default AddUserForm;
-
+}
