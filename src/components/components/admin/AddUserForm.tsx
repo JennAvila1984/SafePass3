@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@supabase/supabase-js";
-import { Input } from "@/components/ui/input";      // shadcn/ui
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
@@ -14,13 +14,12 @@ const schema = z.object({
   phone: z.string().optional(),
   role: z.string().min(2, "Role is required"),
 });
-
-export type AddUserFormValues = z.infer<typeof schema>;
+type AddUserFormValues = z.infer<typeof schema>;
 
 type Props = {
   onSuccess?: () => void;
-  defaultValues?: Partial<AddUserFormValues>; // use for edit
-  userId?: string; // if passed, we will update instead of insert
+  defaultValues?: Partial<AddUserFormValues>;
+  userId?: string; // if present => update
 };
 
 const supabase = createClient(
